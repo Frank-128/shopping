@@ -1,7 +1,9 @@
 package onlineshopping.repo;
 
+import jakarta.persistence.LockModeType;
 import onlineshopping.entity.Item;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -25,4 +27,8 @@ public interface ItemRepo extends JpaRepository<Item, Long> {
 
     @Query("SELECT i.imageUrl FROM Item i WHERE i.imageUrl LIKE :imageName")
     Optional<String> findByImageUrl(@Param("imageName") String imageName);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT i FROM Item i WHERE i.itemNo = :itemNo")
+    Item findByItemNoForUpdate(@Param("itemNo") String itemNo);
 }

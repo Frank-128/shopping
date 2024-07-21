@@ -1,11 +1,11 @@
 package onlineshopping.contoller;
 
 import lombok.RequiredArgsConstructor;
-import onlineshopping.entity.Order;
 import onlineshopping.model.*;
 import onlineshopping.pay.PaymentFacade;
 import onlineshopping.service.impl.AuthService;
 import onlineshopping.service.impl.OrderServiceImpl;
+import onlineshopping.service.impl.SearchServiceImpl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,12 +23,11 @@ public class UserController {
     private final OrderServiceImpl orderService;
     private final PaymentFacade paymentFacade;
     private final AuthService authService;
+    private final SearchServiceImpl searchService;
 
     @CrossOrigin()
     @PostMapping("/cart/checkout")
-    public ResponseEntity<OrderResponse> placeOrder(
-            @RequestBody OrderRequest orderRequest
-    ) {
+    public ResponseEntity<OrderResponse> placeOrder(@RequestBody OrderRequest orderRequest) {
         OrderResponse response = new OrderResponse();
 
         if (orderRequest.getEmail().isEmpty() || orderRequest.getStreet().isEmpty() || orderRequest.getRegion().isEmpty()) {
@@ -41,14 +40,21 @@ public class UserController {
 
         for (CartItem item : orderRequest.getCartItems()) {
             try {
-               Order order= orderService.processOrder(orderRequest.getEmail(), orderRequest.getStreet(), orderRequest.getRegion(), item).getBody();
-                assert order != null;
-                response.setOrderNo(order.getOrderNo());
-                response.setCustomerEmail(order.getCustomer().getEmail());
-                response.setBilling_address(order.getAddress());
+                ResponseEntity<String> result = orderService.processOrder(orderRequest.getEmail(), orderRequest.getStreet(), orderRequest.getRegion(), item);
+                if (result.getStatusCode().is2xxSuccessful()) {
+                    String successMessage = result.getBody();
+                    response.setSuccessful(true);
+                    response.setOrderNo(successMessage);
+                    response.setCustomerEmail(orderRequest.getEmail());
+                    response.setBilling_address(orderRequest.getStreet() + " " + orderRequest.getRegion());
+                } else {
+                    response.setSuccessful(false);
+                    String itemErrorMessage = String.format("Failed to process item %s: %s", item.getItemNo(), result.getBody());
+                    response.setErrorMessage((response.getErrorMessage() == null ? "" : response.getErrorMessage() + "\n") + itemErrorMessage);
+                }
             } catch (Exception e) {
                 response.setSuccessful(false);
-                String itemErrorMessage = String.format("Failed to process item %s: %s", item.getItemNo(), e.getMessage());
+                String itemErrorMessage = String.format("Failed to process item %s: An unexpected error occurred.", item.getItemNo());
                 response.setErrorMessage((response.getErrorMessage() == null ? "" : response.getErrorMessage() + "\n") + itemErrorMessage);
             }
         }
@@ -72,11 +78,12 @@ public class UserController {
             @RequestParam(name = "discountPrice", required = false) float discountPrice,
             @RequestParam(name = "description", required = false) String description,
             @RequestParam(name = "imageUrl", required = false) MultipartFile imageUrl,
-            @RequestParam(name = "category", required = false) List<String> category
+            @RequestParam(name = "category", required = false) List<String> category,
+            @RequestParam(name = "type", required = false) String type
             ){
         return orderService.publishItem(
                 itemName,sizes,colors,
-                stokeQuantity,actualPrice,discountPrice,description,imageUrl,category
+                stokeQuantity,actualPrice,discountPrice,description,imageUrl,category,type
         );
     }
 
@@ -88,7 +95,7 @@ public class UserController {
     }
 
 
-    //find specific user with the provided enrollmentID
+    //find a specific user with the provided enrollmentID
     @CrossOrigin()
     @GetMapping("/{enrollmentID}")
     public ResponseEntity<UserResponse> getUser(@PathVariable("enrollmentID") String enrollmentID){
@@ -102,5 +109,21 @@ public class UserController {
             @RequestParam(name = "profile", required = false) MultipartFile profile
     ) throws IOException {
         return authService.updateProfile(enrollmentID, profile);
+    }
+
+    @CrossOrigin()
+    @PostMapping("/forget-password")
+    public ResponseEntity<String> updateProfile(
+            @RequestParam(name = "email") String email,
+            @RequestParam(name = "password", required = false) String newPassword
+    ){
+        return authService.updateProfile(email,newPassword);
+    }
+    @CrossOrigin()
+    @PostMapping("/cancel-order")
+    public ResponseEntity<String> cancelOrder(
+            @RequestParam(name = "orderNo", required = false) String orderNo
+    ){
+        return searchService.cancelOrder(orderNo);
     }
 }

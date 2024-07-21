@@ -70,7 +70,9 @@ public class Item {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "item_categories", joinColumns = @JoinColumn(name = "item_id"))
     @Column(name = "size")
-    private List<String> category;
+    private List<String> category;//product category
+
+    private String type;//product type
 
     @PrePersist
     public void onCreate(){

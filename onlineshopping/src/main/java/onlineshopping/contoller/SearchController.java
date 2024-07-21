@@ -18,7 +18,7 @@ public class SearchController {
 
     private final SearchServiceImpl searchService;
 
-    // auto-completion drop-down by passing query parameter
+    // auto-completion drop-down bypassing query parameter
     @CrossOrigin()
     @GetMapping("/item-options")
     public ResponseEntity<List<String>> itemProducts(@RequestParam String queryStr){
@@ -57,6 +57,7 @@ public class SearchController {
                         .sizes(queryItem.getSizes())
                         .colors(queryItem.getColors())
                         .categories(queryItem.getCategory())
+                        .type(queryItem.getType())
                         .build();
                 return ResponseEntity.ok(itemResponse);
             }else {

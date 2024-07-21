@@ -28,7 +28,7 @@ public class SecurityConfig {
                                 .permitAll()
                                 .requestMatchers("/api/v1/search/item-options","/api/v1/search/items","/api/v1/search/item-product")
                                 .permitAll()
-                                .requestMatchers("/api/v1/user/publish-product")
+                                .requestMatchers("/api/v1/user/publish-product","/admin/confirm-order")
                                 .permitAll()
                                 .requestMatchers("/api/v1/user/cart/checkout","/api/v1/user/{enrollmentID}","/payments/**")
                                 .permitAll()

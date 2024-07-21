@@ -1,9 +1,13 @@
 package onlineshopping.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import onlineshopping.constants.Status;
 import onlineshopping.entity.Item;
+import onlineshopping.entity.Order;
+import onlineshopping.entity.OrderStatus;
 import onlineshopping.exc.DatabaseAccessException;
 import onlineshopping.exc.HandleExceptions;
+import onlineshopping.exc.SearchExceptions;
 import onlineshopping.model.SalesPerMonthDTO;
 import onlineshopping.repo.*;
 import onlineshopping.service.base.SearchBaseService;
@@ -15,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -145,6 +150,86 @@ public class SearchServiceImpl implements SearchBaseService {
             }
 
             return salesPerMonthList;
+    }
+
+
+    @Override
+    public ResponseEntity<String> processOrderStatus(String orderNo, String orderStatus) {
+        try {
+            Order order = orderRepo.findByOrderNo(orderNo);
+            if (order == null){
+                throw new SearchExceptions("Oops!!! No order matches");
+            }
+
+            OrderStatus status = order.getOrderStatus();
+            if (status == null) {
+                throw new SearchExceptions("Oops!!! No order status found for the order");
+            }
+
+            Status newStatus;
+            try {
+                newStatus = Status.valueOf(orderStatus);
+            } catch (IllegalArgumentException e) {
+                throw new SearchExceptions("Invalid order status: " + orderStatus);
+            }
+
+            switch (newStatus) {
+                case completed:
+                    status.setOrder_status(Status.completed.name());
+                    break;
+                case canceled:
+                    status.setOrder_status(Status.canceled.name());
+                    break;
+                case processing:
+                    status.setOrder_status(Status.processing.name());
+                    break;
+                case shipped:
+                    status.setOrder_status(Status.shipped.name());
+                    break;
+                case delivered:
+                    status.setOrder_status(Status.delivered.name());
+                    break;
+                default:
+                    throw new SearchExceptions("Unhandled order status: " + newStatus);
+            }
+
+            status.setDate_updated(LocalDateTime.now().withNano(0));
+            order.setDate_updated(LocalDateTime.now().withNano(0));
+
+            statusRepo.save(status);
+            orderRepo.save(order);
+
+            return ResponseEntity.ok("Order confirmed successfully");
+        }catch (SearchExceptions exceptions){
+            throw new SearchExceptions("Error: "+exceptions.getMessage());
+        }
+    }
+
+    @Override
+    public ResponseEntity<String> cancelOrder(String orderNo) {
+        try {
+            Order order = orderRepo.findByOrderNo(orderNo);
+            if (order == null){
+                throw new SearchExceptions("Oops!!! No order matches");
+            }
+
+            OrderStatus status = order.getOrderStatus();
+            if (status == null) {
+                throw new SearchExceptions("Oops!!! No order status found for the order");
+            }
+
+            status.setOrder_status(Status.canceled.name());
+            status.setDate_updated(LocalDateTime.now().withNano(0));
+
+            order.setDate_updated(LocalDateTime.now().withNano(0));
+
+            statusRepo.save(status);
+            orderRepo.save(order);
+
+            return ResponseEntity.ok("Order confirmed successfully");
+        }catch (SearchExceptions exceptions){
+            throw new SearchExceptions("Error: "+exceptions.getMessage());
+        }
     }
 
 

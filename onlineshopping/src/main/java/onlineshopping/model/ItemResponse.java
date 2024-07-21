@@ -19,4 +19,5 @@ public class ItemResponse {
     private List<String> sizes;
     private List<String> colors;
     private List<String> categories;
+    private String type;
 }

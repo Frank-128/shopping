@@ -58,8 +58,7 @@ public class AuthService implements BaseService {
             customer.setEmail(userDto.getEmail());
             customer.setMobile(userDto.getMobile());
             customer.setPassword(passwordEncoder.encode(userDto.getPassword()));
-            if (userDto.getRole() != null && (userDto.getRole().equalsIgnoreCase("manufacturer") ||
-                            userDto.getRole().equalsIgnoreCase("sale"))) {
+            if (userDto.getRole() != null && (userDto.getRole().equalsIgnoreCase("entrepreneur"))) {
                 customer.setRole(UserRole.ENTREPRENEUR);
             } else {
                 customer.setRole(UserRole.CUSTOMER);
@@ -232,6 +231,7 @@ public class AuthService implements BaseService {
         }
     }
 
+    //update for profile picture
     @Override
     public ResponseEntity<String> updateProfile(String enrollmentID, MultipartFile profile) throws IOException {
         try {
@@ -251,6 +251,23 @@ public class AuthService implements BaseService {
             throw new SearchExceptions("Error: "+exceptions.getMessage());
         }
 
+    }
+
+    //forget password
+    public ResponseEntity<String> updateProfile(String email, String newPassword) {
+        try {
+            Customer customer = userRepo.findByEmail(email);
+            if (customer == null){
+                throw new SearchExceptions("No matches with email provided");
+            }
+
+            customer.setPassword(passwordEncoder.encode(newPassword));
+            userRepo.save(customer);
+            return ResponseEntity.ok("Password updated successfully");
+
+        }catch (SearchExceptions exceptions){
+            throw new SearchExceptions("Error: "+exceptions.getMessage());
+        }
     }
 
     private boolean isOtpExpired(Customer customer, String providedOtp) {
